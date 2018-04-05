@@ -1,0 +1,108 @@
+From bfb5b6df1034bb1946d810bc6583238b0234810d Mon Sep 17 00:00:00 2001
+From: Alexander Couzens <lynxis@fe80.eu>
+Date: Wed, 26 Jul 2017 02:10:37 +0200
+Subject: [PATCH 13/17] NOT_FOR_MERGE: decode qmi messages with libqmi
+
+---
+ Makefile.am                  |  3 ++-
+ drivers/qmimodem/qmi.c       |  4 ++++
+ drivers/qmimodem/qmibridge.c | 40 ++++++++++++++++++++++++++++++++++++++++
+ drivers/qmimodem/qmibridge.h |  3 +++
+ 4 files changed, 49 insertions(+), 1 deletion(-)
+ create mode 100644 drivers/qmimodem/qmibridge.c
+ create mode 100644 drivers/qmimodem/qmibridge.h
+
+Index: ofono-1.21/Makefile.am
+===================================================================
+--- ofono-1.21.orig/Makefile.am
++++ ofono-1.21/Makefile.am
+@@ -234,6 +234,7 @@ builtin_sources += $(qmi_sources) \
+ 			drivers/qmimodem/gprs-context.c \
+ 			drivers/qmimodem/radio-settings.c \
+ 			drivers/qmimodem/location-reporting.c \
++			drivers/qmimodem/qmibridge.c \
+ 			drivers/qmimodem/netmon.c
+ 
+ builtin_modules += gobi
+Index: ofono-1.21/drivers/qmimodem/qmi.c
+===================================================================
+--- ofono-1.21.orig/drivers/qmimodem/qmi.c
++++ ofono-1.21/drivers/qmimodem/qmi.c
+@@ -37,6 +37,7 @@
+ 
+ #include <ofono/log.h>
+ 
++#include "qmibridge.h"
+ #include "qmi.h"
+ #include "ctl.h"
+ 
+@@ -651,6 +652,8 @@ static gboolean can_write_data(GIOChanne
+ 	__debug_msg(' ', req->buf, bytes_written,
+ 				device->debug_func, device->debug_data);
+ 
++	qmibridge_decode_req(req->buf, req->len);
++
+ 	hdr = req->buf;
+ 
+ 	if (hdr->service == QMI_SERVICE_CONTROL)
+@@ -838,6 +841,7 @@ static gboolean received_data(GIOChannel
+ 	__hexdump('<', buf, bytes_read,
+ 				device->debug_func, device->debug_data);
+ 
++	qmibridge_decode_read(buf, bytes_read);
+ 	offset = 0;
+ 
+ 	while (offset < bytes_read) {
+Index: ofono-1.21/drivers/qmimodem/qmibridge.c
+===================================================================
+--- /dev/null
++++ ofono-1.21/drivers/qmimodem/qmibridge.c
+@@ -0,0 +1,40 @@
++
++#include <libqmi-glib.h>
++
++#include <string.h>
++#include <stdio.h>
++
++#include <ofono/log.h>
++
++#include <glib.h>
++
++static void ask_qmi(const char *prefix, void *data, size_t len)
++{
++	/* from osmo-qcdiag */
++	GByteArray *buffer;
++	GError *error = NULL;
++	QmiMessage *message;
++	gchar *printable;
++
++	buffer = g_byte_array_sized_new(len);
++	g_byte_array_append(buffer, data, len);
++
++	message = qmi_message_new_from_raw(buffer, &error);
++	if (!message) {
++		fprintf(stderr, "qmi_message_new_from_raw() returned NULL\n");
++		return;
++	}
++
++	printable = qmi_message_get_printable(message, "QMI ");
++	DBG("%s: %s", prefix, printable);
++	g_free(printable);
++}
++void qmibridge_decode_read(void *data, size_t len)
++{
++	ask_qmi("READ", data, len);
++}
++
++void qmibridge_decode_req(void *data, size_t len)
++{
++	ask_qmi("_REQ", data, len);
++}
+Index: ofono-1.21/drivers/qmimodem/qmibridge.h
+===================================================================
+--- /dev/null
++++ ofono-1.21/drivers/qmimodem/qmibridge.h
+@@ -0,0 +1,3 @@
++
++void qmibridge_decode_read(void *data, size_t len);
++void qmibridge_decode_req(void *data, size_t len);

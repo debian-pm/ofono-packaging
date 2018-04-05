@@ -1,1 +1,12 @@
 0001-doc-ofonod.8-escape-minus-sign.patch
+0002-common-create-GList-helper-ofono_call_compare.patch
+0003-voicecall-common-promote-call_status_to_string-publi.patch
+0006-add-call-list-helper-to-manage-voice-call-lists.patch
+0007-common-atmodem-rename-move-at_util_call_compare_by_s.patch
+0008-common-atmodem-rename-move-at_util_call_compare_by_i.patch
+0011-qmimodem-sync-the-modem-on-enable.patch
+0014-network-ofono_netreg_status_notify-debug-output-lac-.patch
+0015-network-debug-output-the-network-time-if-updated.patch
+0016-voicecall-prefer-release_specific-over-hang_up_activ.patch
+0017-RFC-qmimodem-implement-voice-calls.patch
+0018-ofono-rpmsg.patch
